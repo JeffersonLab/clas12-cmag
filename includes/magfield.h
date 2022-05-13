@@ -139,6 +139,7 @@ typedef struct cell2d {
 } Cell2D;
 
 typedef enum {TORUS, SOLENOID} FieldType;
+typedef enum {INTERPOLATION, NEAREST_NEIGHBOR} Algorithm;
 
 //holds the entire field map
 typedef struct magneticfield {
@@ -183,7 +184,7 @@ extern char *nearestNeighborUnitTest();
 extern FieldValuePtr getFieldAtIndex(MagneticFieldPtr, int );
 extern void getFieldValue(FieldValuePtr, double, double, double, MagneticFieldPtr);
 extern void getCompositeFieldValue(FieldValuePtr, double, double, double, MagneticFieldPtr, MagneticFieldPtr);
-extern void setAlgorithm(enum Algorithm);
+extern void setAlgorithm(Algorithm);
 bool containsCartesian(MagneticFieldPtr, double, double, double);
 bool containsCylindrical(MagneticFieldPtr, double, double);
 extern void resetCell3D(Cell3DPtr, double, double, double);

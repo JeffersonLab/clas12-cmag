@@ -257,9 +257,39 @@ const char *lengthUnits(MagneticFieldPtr fieldPtr) {
   * @param stream a file stream, e.g. stdout.
   */
 void printFieldValue(FieldValuePtr fvPtr, FILE *stream) {
-    fprintf(stream, "(%-9.5f, %-9.5f, %-9.5f), magnitude: %12.5f\n", fvPtr->b1,
+    fprintf(stream, "(%-9.5f, %-9.5f, %-9.5f) kG, magnitude: %12.5f kG\n", fvPtr->b1,
             fvPtr->b2, fvPtr->b3, fieldMagnitude(fvPtr));
 }
+
+/**
+ * Print a full representation of the field value
+ * @param fvPtr fvPtr a pointer to the field value
+ * @param units "G", "kG", or "T"
+ * @param stream  file stream, e.g. stdout.
+ */
+void printFieldValueFull(FieldValuePtr fvPtr, char *units, FILE *stream) {
+
+    char u;
+
+    u = units[0];
+    double factor = 1;
+    switch (u) {
+        case 'G':
+        case 'g':
+            factor = 1000;
+            break;
+
+        case 't':
+        case 'T':
+            factor = 0.1;
+            break;
+    }
+
+    fprintf(stream, "(%-9.5e, %-9.5e, %-9.5e) [%s], magnitude: %12.5f\n", fvPtr->b1*factor,
+            fvPtr->b2*factor, fvPtr->b3*factor, fieldMagnitude(fvPtr)*factor, units);
+
+}
+
 
  /**
   * Allocate a field map with no content.
@@ -424,6 +454,24 @@ static void resetCell(Cell3D *cell) {
     cell->zMin = INFINITY;
 }
 
+/**
+ * Usual min fumction.
+ * @param a one value.
+ * @param b the other value.
+ * @return the minimum of the two numbers.
+ */
+double min(double a, double b) {
+    return (a < b) ? a : b;
+}
+/**
+ * Usual ax fumction.
+ * @param a one value.
+ * @param b the other value.
+ * @return the maximum of the two numbers.
+ */
+double max(double a, double b) {
+    return (a > b) ? a : b;
+}
 /**
  * A binary search through a sorted array.
  * @param array an array sorted (descending).
