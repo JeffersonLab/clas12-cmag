@@ -185,6 +185,7 @@ extern FieldValuePtr getFieldAtIndex(MagneticFieldPtr, int );
 extern void getFieldValue(FieldValuePtr, double, double, double, MagneticFieldPtr);
 extern void getCompositeFieldValue(FieldValuePtr, double, double, double, MagneticFieldPtr, MagneticFieldPtr);
 extern void setAlgorithm(Algorithm);
+extern Algorithm getAlgorithm();
 bool containsCartesian(MagneticFieldPtr, double, double, double);
 bool containsCylindrical(MagneticFieldPtr, double, double);
 extern void resetCell3D(Cell3DPtr, double, double, double);

@@ -50,6 +50,14 @@ void setAlgorithm(Algorithm algorithm) {
 }
 
 /**
+ * Get the current algorithm for obtaining field values
+ * @return the current algorithm (interpolation or nearest neighbor)
+ */
+Algorithm getAlgorithm() {
+    return _algorithm;
+}
+
+/**
  * This checks whether the given point is within the boundary of the field. This is so the methods
  * that retrieve a field value can short-circuit to zero. Note ther is no phi parameter, because
  * all values of phi are "contained."

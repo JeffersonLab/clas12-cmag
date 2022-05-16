@@ -114,14 +114,39 @@ static void printFV(FieldValuePtr fieldValuePtr, double x, double y, double z, M
 static void testSpecialValues() {
     FieldValuePtr fieldValuePtr = (FieldValuePtr) malloc (sizeof(FieldValue));
 
-    printFV(fieldValuePtr, -t30, 0, 380.0, currentField);
+    printFV(fieldValuePtr, -30, 0, 380.0, currentField);
     printFV(fieldValuePtr, -46.5, 0, 380, currentField);
     printFV(fieldValuePtr, 32.8, 32.8, 380, currentField);
     printFV(fieldValuePtr, -32.8, -32.8, 380, currentField);
     printFV(fieldValuePtr, 23.2, 40.2, 380, currentField);
+    printFV(fieldValuePtr, -19.2, 31.7, 401.5, currentField);
+}
 
+/**
+ * Set the algorithm
+ */
+static void useAlgorithm(char c) {
+    if (c == 'i') {
+        printf("\nUsing interpolation.\n");
+        setAlgorithm(INTERPOLATION);
+    }
+    else {
+        printf("\nUsing nearest neighbor.\n");
+        setAlgorithm(NEAREST_NEIGHBOR);
+    }
+}
 
-
+/**
+ * print the current environment
+ */
+static void environment() {
+    printf("\nEnvironment: ");
+    if (getAlgorithm() == NEAREST_NEIGHBOR) {
+        printf("\tNearest Neighbor");
+    }
+    else {
+        printf("\tInterpolation");
+    }
 }
 
 /**
@@ -130,7 +155,6 @@ static void testSpecialValues() {
 static void userCommands() {
 
     currentField = symmetricTorus;
-
 
     //for selections
     char *choice = (char *) malloc(80);
@@ -141,6 +165,9 @@ static void userCommands() {
 
     while (!done) {
         printf("\nOptions:");
+        printf("\n\tc\tcurrent environment");
+        printf("\n\ti\tuse interpolation");
+        printf("\n\tn\tuse nearest neighbor");
         printf("\n\tq\tquit and exit program");
         printf("\n\tr\trun all tests");
         printf("\n\ts\tgenerate svg images");
@@ -151,33 +178,44 @@ static void userCommands() {
 
         printf("Selected [%c]\n", choice[0]);
 
-        switch (choice[0]) {
+        if ((choice != NULL) && (strlen(choice) > 0)) {
+            switch (choice[0]) {
 
-            case 'q':
-                exit(0);
+                case 'c':
+                    environment();
+                    break;
 
-            case 'r':
-                //run the unit tests
-                testResult = allTests();
+                case 'i':
+                case 'n':
+                    useAlgorithm(choice[0]);
+                    break;
 
-                if (testResult != NULL) {
-                    fprintf(stdout, "Unit test failed: [%s]\n", testResult);
-                } else {
-                    fprintf(stdout, "\nProgram ran successfully.\n");
-                }
-                break;
+                case 'q':
+                    exit(0);
 
-            case 's':
-                svgImages();
-                break;
+                case 'r':
+                    //run the unit tests
+                    testResult = allTests();
 
-            case 't':
-                testSpecialValues();
-                break;
+                    if (testResult != NULL) {
+                        fprintf(stdout, "Unit test failed: [%s]\n", testResult);
+                    } else {
+                        fprintf(stdout, "\nProgram ran successfully.\n");
+                    }
+                    break;
 
-            default:
-                printf("Unrecognized command [%c]\n", choice[0]);
-                break;
+                case 's':
+                    svgImages();
+                    break;
+
+                case 't':
+                    testSpecialValues();
+                    break;
+
+                default:
+                    printf("Unrecognized command [%c]\n", choice[0]);
+                    break;
+            }
         }
     }
     free(choice);
