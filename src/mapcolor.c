@@ -33,10 +33,78 @@ char *getColor(ColorMapPtr cmapPtr, double value) {
     return cmapPtr->colors[index];
 }
 
+/**
+ * Get the hex color string from color components
+ * @param colorStr must be at last 8 characters
+ * @param r the red component [0..255]
+ * @param g the green component [0..255]
+ * @param b the blue component [0..255]
+ */
+void colorToHex(char * colorStr, int r, int g, int b) {
+    sprintf(colorStr, "#%02x%02x%02x", r, g, b);
+}
+
+/**
+ * Get a color map for a given maximum value. Unlike the default
+ * map, here the values are generated linearly.
+ * @return a color map corresponding to a range [0..maxVal].
+ */
+ColorMapPtr getColorMap(double maxVal) {
+
+    ColorMapPtr cmapPtr = (ColorMapPtr) malloc(sizeof(ColorMap));
+
+    int colorlen = 73;
+    cmapPtr->numColors = colorlen;
+    stringCopy(&(cmapPtr->tooSmallColor), "#ffffff");
+    stringCopy(&(cmapPtr->tooBigColor), "#000000");
+
+    int r, g, b;
+
+    b = 0;
+    r = 255;
+    int i = 0;
+    for (int j = 0; j <19; j++) {
+        int del = (int)((j*255.)/19);
+        g = del;
+        cmapPtr->colors[i] = (char *) malloc(8);
+        colorToHex(cmapPtr->colors[i], r, g, b);
+        i++;
+    }
+
+    for (int j = 0; j <36; j++) {
+        int del = (int)((j*255.)/36);
+        r = 255 - del;
+        g = 255 - del/2;
+        b = del;
+        cmapPtr->colors[i] = (char *) malloc(8);
+        colorToHex(cmapPtr->colors[i], r, g, b);
+        i++;
+    }
+
+
+    g = 255;
+    b = 255;
+    for (int j = 0; j <18; j++) {
+        int del = (int)((j*255.)/18);
+        r = del;
+        g = 128 + del/2;
+        cmapPtr->colors[i] = (char *) malloc(8);
+        colorToHex(cmapPtr->colors[i], r, g, b);
+        i++;
+    }
+
+    double del = maxVal/colorlen;
+    //linear
+    for (int i = 0; i <= colorlen; i++) {
+        cmapPtr->values[i] = maxVal*(1. - ((double)i)/colorlen);
+    }
+
+    return cmapPtr;
+}
 
 /**
  * Get the default color map optimized for displaying torus and solenoid
- * @return he default color map.
+ * @return the default color map.
  */
 ColorMapPtr defaultColorMap() {
 
@@ -91,14 +159,4 @@ ColorMapPtr defaultColorMap() {
 }
 
 
-/**
- * Get the hex color string from color components
- * @param colorStr must be at last 8 characters
- * @param r the red component [0..255]
- * @param g the green component [0..255]
- * @param b the blue component [0..255]
- */
-void colorToHex(char * colorStr, int r, int g, int b) {
-    sprintf(colorStr, "#%02x%02x%02x", r, g, b);
-}
 

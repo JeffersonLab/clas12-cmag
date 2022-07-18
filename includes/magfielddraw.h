@@ -8,7 +8,9 @@
 #include "magfield.h"
 
 //external function prototypes
-extern void createSVGImageFixedPhi(char *path, double, MagneticFieldPtr, MagneticFieldPtr);
-extern void createSVGImageFixedZ(char *path, double, MagneticFieldPtr, MagneticFieldPtr);
+extern void createSVGImageFixedPhiDiff(char *, char *, double, MagneticFieldPtr, MagneticFieldPtr);
+extern void createSVGImageFixedZDiff(char *, char *, double, MagneticFieldPtr, MagneticFieldPtr);
+extern void createSVGImageFixedPhi(char *, char *, double, MagneticFieldPtr, MagneticFieldPtr);
+extern void createSVGImageFixedZ(char *, char *, double, MagneticFieldPtr, MagneticFieldPtr);
 
 #endif //CMAG_MAGFIELDDRAW_H

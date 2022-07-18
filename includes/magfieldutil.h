@@ -22,6 +22,7 @@ extern const char *lengthUnits(MagneticFieldPtr);
 extern double fieldMagnitude(FieldValue *);
 extern void printFieldSummary(MagneticFieldPtr, FILE *);
 extern void printFieldValue(FieldValue *, FILE *);
+extern void printFieldValueFull(FieldValue *, char *, FILE *);
 extern MagneticFieldPtr createFieldMap(void);
 extern void freeFieldMap(MagneticFieldPtr);
 extern int randomInt(int, int);
@@ -29,6 +30,8 @@ extern double randomDouble(double, double);
 extern char *randomUnitTest();
 bool sameNumber(double, double);
 void normalizeAngle(double *);
+extern double min(double, double);
+extern double max(double, double);
 
 extern double toDegrees(double);
 extern double toRadians(double);

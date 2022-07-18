@@ -17,7 +17,7 @@
 MagneticFieldPtr testFieldPtr;
 
 //the field algorithm (global; applies to all fields)
-enum Algorithm _algorithm = INTERPOLATION;
+Algorithm _algorithm = NEAREST_NEIGHBOR;
 
 //for sector rotations
 static double cosSect[] = { NAN, 1, 0.5, -0.5, -1, -0.5, 0.5 };
@@ -41,12 +41,20 @@ static void torusCalculate(FieldValuePtr,
  * Set the global option for the algorithm used to extract field values.
  * @param algorithm it can either be
  */
-void setAlgorithm(enum Algorithm algorithm) {
+void setAlgorithm(Algorithm algorithm) {
     if (algorithm != _algorithm) {
         _algorithm = algorithm;
         fprintf(stdout, "The algorithm for finding field values has been changed to: %s",
                 (_algorithm == INTERPOLATION) ? "INTERPOLATION" : "NEAREST_NEIGHBOR");
     }
+}
+
+/**
+ * Get the current algorithm for obtaining field values
+ * @return the current algorithm (interpolation or nearest neighbor)
+ */
+Algorithm getAlgorithm() {
+    return _algorithm;
 }
 
 /**
@@ -61,11 +69,11 @@ void setAlgorithm(enum Algorithm algorithm) {
  * @return true if the point is within the boundary of the field.
  */
 bool containsCylindrical(MagneticFieldPtr fieldPtr, double rho, double z) {
-    if ((z < fieldPtr->zGridPtr->minVal) || (z > fieldPtr->zGridPtr->maxVal)) {
+    if ((z < fieldPtr->zGridPtr->minVal) || (z >= fieldPtr->zGridPtr->maxVal)) {
         return false;
     }
 
-    if ((rho < fieldPtr->rhoGridPtr->minVal) || (rho > fieldPtr->rhoGridPtr->maxVal)) {
+    if ((rho < fieldPtr->rhoGridPtr->minVal) || (rho >= fieldPtr->rhoGridPtr->maxVal)) {
         return false;
     }
 
@@ -290,7 +298,6 @@ void getFieldValue(FieldValuePtr fieldValuePtr,
 
         //will even need phi for solenoid to rotate
         double phi = toDegrees(atan2(y, x));
-        double rho = hypot(x, y);
 
         if (fieldPtr->type == TORUS) {
             getFieldValueTorus(fieldValuePtr, phi, rho, z, fieldPtr);
@@ -328,18 +335,51 @@ static void torusCalculate(FieldValuePtr fieldValuePtr,
         resetCell3D(cell, phi, rho, z);
     }
 
-    //nearest neighbor
-    double fractPhi = (phi - cell->phiMin) * cell->phiNorm;
-    double fractRho = (rho - cell->rhoMin) * cell->rhoNorm;
-    double fractZ = (z - cell->zMin) * cell->zNorm;
+    if (_algorithm == INTERPOLATION) {
+        cell->f[0] = (phi - cell->phiMin) * cell->phiNorm;
+        cell->f[1] = (rho - cell->rhoMin) * cell->rhoNorm;
+        cell->f[2] = (z - cell->zMin) * cell->zNorm;
 
-    int N1 = (fractPhi < 0.5) ? 0 : 1;
-    int N2 = (fractRho < 0.5) ? 0 : 1;
-    int N3 = (fractZ < 0.5) ? 0 : 1;
+        cell->f[0] = cell->f[0] - floor(cell->f[0]);
+        cell->f[1] = cell->f[1] - floor(cell->f[1]);
+        cell->f[2] = cell->f[2] - floor(cell->f[2]);
 
-    fieldValuePtr->b1 = cell->b[N1][N2][N3]->b1; // Bx
-    fieldValuePtr->b2 = cell->b[N1][N2][N3]->b2; // By
-    fieldValuePtr->b3 = cell->b[N1][N2][N3]->b3; // Bz
+        cell->g[0] = 1 - cell->f[0];
+        cell->g[1] = 1 - cell->f[1];
+        cell->g[2] = 1 - cell->f[2];
+
+        cell->a[0] = cell->g[0] * cell->g[1] * cell->g[2];
+        cell->a[1] = cell->g[0] * cell->g[1] * cell->f[2];
+        cell->a[2] = cell->g[0] * cell->f[1] * cell->g[2];
+        cell->a[3] = cell->g[0] * cell->f[1] * cell->f[2];
+        cell->a[4] = cell->f[0] * cell->g[1] * cell->g[2];
+        cell->a[5] = cell->f[0] * cell->g[1] * cell->f[2];
+        cell->a[6] = cell->f[0] * cell->f[1] * cell->g[2];
+        cell->a[7] = cell->f[0] * cell->f[1] * cell->f[2];
+
+
+        fieldValuePtr->b1 = cell->b[0][0][0]->b1 * cell->a[0] + cell->b[0][0][1]->b1 * cell->a[1] + cell->b[0][1][0]->b1 * cell->a[2] + cell->b[0][1][1]->b1 * cell->a[3]
+                            + cell->b[1][0][0]->b1 * cell->a[4] + cell->b[1][0][1]->b1 * cell->a[5] + cell->b[1][1][0]->b1 * cell->a[6] + cell->b[1][1][1]->b1 * cell->a[7];
+        fieldValuePtr->b2 = cell->b[0][0][0]->b2 * cell->a[0] + cell->b[0][0][1]->b2 * cell->a[1] + cell->b[0][1][0]->b2 * cell->a[2] + cell->b[0][1][1]->b2 * cell->a[3]
+                            + cell->b[1][0][0]->b2 * cell->a[4] + cell->b[1][0][1]->b2 * cell->a[5] + cell->b[1][1][0]->b2 * cell->a[6] + cell->b[1][1][1]->b2 * cell->a[7];
+        fieldValuePtr->b3 = cell->b[0][0][0]->b3 * cell->a[0] + cell->b[0][0][1]->b3 * cell->a[1] + cell->b[0][1][0]->b3 * cell->a[2] + cell->b[0][1][1]->b3 * cell->a[3]
+                            + cell->b[1][0][0]->b3 * cell->a[4] + cell->b[1][0][1]->b3 * cell->a[5] + cell->b[1][1][0]->b3 * cell->a[6] + cell->b[1][1][1]->b3 * cell->a[7];
+
+
+    }
+    else { //nearest neighbor
+        double fractPhi = (phi - cell->phiMin) * cell->phiNorm;
+        double fractRho = (rho - cell->rhoMin) * cell->rhoNorm;
+        double fractZ = (z - cell->zMin) * cell->zNorm;
+
+        int N1 = (fractPhi > 0.5) ? 1 : 0;
+        int N2 = (fractRho > 0.5) ? 1 : 0;
+        int N3 = (fractZ > 0.5) ? 1 : 0;
+
+        fieldValuePtr->b1 = cell->b[N1][N2][N3]->b1; // Bx
+        fieldValuePtr->b2 = cell->b[N1][N2][N3]->b2; // By
+        fieldValuePtr->b3 = cell->b[N1][N2][N3]->b3; // Bz
+    }
 
 }
 
@@ -363,7 +403,7 @@ void getFieldValueTorus(FieldValuePtr fieldValuePtr,
     if (fieldPtr->symmetric) { //torus with 12-fold symmetry
         // relativePhi (-30, 30) phi relative to middle of sector
         double relPhi = relativePhi(phi);
-        bool flip = (relPhi < 0.0);
+         bool flip = (relPhi < 0.0);
         torusCalculate(fieldValuePtr, fabs(relPhi), rho, z, fieldPtr);
 
         //do we need to flip?
@@ -420,23 +460,52 @@ void getFieldValueSolenoid(FieldValuePtr fieldValuePtr,
         resetCell2D(cell, rho, z);
     }
 
-    //nearest neighbor
-    double fractRho = (rho - cell->rhoMin) * cell->rhoNorm;
-    double fractZ = (z - cell->zMin) * cell->zNorm;
+    if (_algorithm == INTERPOLATION) {
+        double fractRho = (rho - cell->rhoMin) * cell->rhoNorm;
+        double fractZ = (z - cell->zMin) * cell->zNorm;
 
-    int N2 = (fractRho < 0.5) ? 0 : 1;
-    int N3 = (fractZ < 0.5) ? 0 : 1;
+        fractRho = fractRho - floor(fractRho);
+        fractZ = fractZ - floor(fractZ);
 
-    fieldValuePtr->b1 = 0; // Bphi is 0
-    fieldValuePtr->b2 = cell->b[N2][N3]->b2; // Brho
-    fieldValuePtr->b3 = cell->b[N2][N3]->b3; // Bz
+        double g1 = 1 - fractRho;
+        double g2 = 1 - fractZ;
+
+        double g1g2 = g1 * g2;
+        double f1g2 = fractRho * g2;
+        double g1f2 = g1 * fractZ;
+        double f1f2 = fractRho * fractZ;
+
+        if (cell->b[1][0] == NULL) {
+            fprintf(stderr, "Recovering from NULL b vector in getFieldValueSolenoid.");
+            cell->b[1][0] = cell->b[0][0];
+            cell->b[1][1] = cell->b[0][1];
+        }
+
+        fieldValuePtr->b1 = 0; // Bphi is 0
+        fieldValuePtr->b2 = cell->b[0][0]->b2 * g1g2 + cell->b[0][1]->b2 * g1f2 + cell->b[1][0]->b2 * f1g2 +
+                            cell->b[1][1]->b2 * f1f2;
+        fieldValuePtr->b3 = cell->b[0][0]->b3 * g1g2 + cell->b[0][1]->b3 * g1f2 + cell->b[1][0]->b3 * f1g2 +
+                            cell->b[1][1]->b3 * f1f2;
+
+    }
+    else { //nearest neighbor
+        double fractRho = (rho - cell->rhoMin) * cell->rhoNorm;
+        double fractZ = (z - cell->zMin) * cell->zNorm;
+
+        int N2 = (fractRho < 0.5) ? 0 : 1;
+        int N3 = (fractZ < 0.5) ? 0 : 1;
+
+        fieldValuePtr->b1 = 0; // Bphi is 0
+        fieldValuePtr->b2 = cell->b[N2][N3]->b2; // Brho
+        fieldValuePtr->b3 = cell->b[N2][N3]->b3; // Bz
+    }
 
     //rotate with knowledge that for solenoid Bphi = 0 in map
     double phiRad = toRadians(phi);
     double bRho = fieldValuePtr->b2;
 
-    fieldValuePtr->b1 = bRho*cos(phiRad);
-    fieldValuePtr->b2 = bRho*sin(phiRad);
+    fieldValuePtr->b1 = bRho * cos(phiRad);
+    fieldValuePtr->b2 = bRho * sin(phiRad);
 }
 
 /**
@@ -448,7 +517,7 @@ void getFieldValueSolenoid(FieldValuePtr fieldValuePtr,
  * obtained from all the field maps that it is given in the variable length
  * argument list. For example, if torus and solenoid point to fields,
  * then one can obtain the combined field at (x, y, z) by calling
- * getCompositeFieldValue(fieldVal, x, y, x, torus, solenoid).
+ * getCompositeFieldValue(fieldVal, x, y, z, torus, solenoid).
  * @param x the x coordinate in cm.
  * @param y the y coordinate in cm.
  * @param z the z coordinate in cm.
@@ -490,7 +559,7 @@ void getCompositeFieldValue(FieldValuePtr fieldValuePtr,
  * @return the composite index into the 1D data array.
  */
 int getCompositeIndex(MagneticFieldPtr fieldPtr, int n1, int n2, int n3) {
-    return n1 * fieldPtr->N23 + n2 * fieldPtr->zGridPtr->num + n3;
+    return n1 * fieldPtr->N23 + n2 * fieldPtr->zGridPtr->numPoints + n3;
 }
 
 /**
@@ -512,11 +581,11 @@ void invertCompositeIndex(MagneticFieldPtr fieldPtr, int index,
         *zIndex = -1;
     }
     else {
-        int NZ = fieldPtr->zGridPtr->num;
+        int NZ = fieldPtr->zGridPtr->numPoints;
         int n3 = index % NZ;
         index = (index - n3) / NZ;
 
-        int NRho = fieldPtr->rhoGridPtr->num;
+        int NRho = fieldPtr->rhoGridPtr->numPoints;
         int n2 = index % NRho;
         int n1 = (index - n2) / NRho;
         *phiIndex  = n1;
@@ -537,11 +606,11 @@ void invertCompositeIndex(MagneticFieldPtr fieldPtr, int index,
  */
 void getCoordinateIndices(MagneticFieldPtr fieldPtr, double phi, double rho, double z,
                           int *nPhi, int *nRho, int *nZ) {
+
     *nPhi = getIndex(fieldPtr->phiGridPtr, phi);
     *nRho = getIndex(fieldPtr->rhoGridPtr, rho);
     *nZ = getIndex(fieldPtr->zGridPtr, z);
 }
-
 
 /**
  * A unit test for the test field.
@@ -550,13 +619,32 @@ void getCoordinateIndices(MagneticFieldPtr fieldPtr, double phi, double rho, dou
  */
 char *nearestNeighborUnitTest() {
 
-    double resolution = 0.1;   //gauss
+    double resolution = 1;   //gauss
 
     setAlgorithm(NEAREST_NEIGHBOR);
     FieldValuePtr fieldValuePtr = (FieldValuePtr) malloc (sizeof(FieldValue));
 
     if (testFieldPtr->type == TORUS) {
 
+        for (int i = 0; i < ARRAYSIZE(torusNN); i++) {
+            double *data = torusNN[i];
+            getFieldValue(fieldValuePtr, data[0], data[1], data[2], testFieldPtr);
+
+            //computed data in kG, convert kG to G
+            double bx = 1000*fieldValuePtr->b1;
+            double by = 1000*fieldValuePtr->b2;
+            double bz = 1000*fieldValuePtr->b3;
+
+            //test data in Tesla, convert to Gauss
+            double bbx = 10000*data[3];
+            double bby = 10000*data[4];
+            double bbz = 10000*data[5];
+            int k = 66;
+        }
+
+        setAlgorithm(INTERPOLATION);
+        fprintf(stdout, "\nPASSED Torus nearest neighbor UnitTest\n");
+        return NULL;
     }
     else { //solenoid
         for (int i = 0; i < ARRAYSIZE(solenoidNN); i++) {
@@ -569,30 +657,40 @@ char *nearestNeighborUnitTest() {
             double bz = 1000*fieldValuePtr->b3;
 
             if (sign(bx) != sign(data[3])) {
+                fprintf(stderr, "Diff x signs %-12.7f   %-12.7f  \n", bx, data[3]);
                 mu_assert("The X components had different signs", false);
             }
             if (sign(by) != sign(data[4])) {
+                fprintf(stderr, "Diff y signs %-12.7f   %-12.7f  \n", by, data[4]);
                 mu_assert("The Y components had different signs", false);
             }
             if (sign(bz) != sign(data[5])) {
+                fprintf(stderr, "Diff z signs %-12.7f   %-12.7f  \n", bz, data[5]);
                 mu_assert("The Z components had different signs", false);
             }
 
             if (fabs(bx - data[3]) > resolution) {
+                fprintf(stderr, "Diff x vals %-12.7f   %-12.7f  \n", bx, data[3]);
                 mu_assert("The X components had different values", false);
             }
             if (fabs(by - data[4]) > resolution) {
-                mu_assert("The Y components had different values", false);
+                fprintf(stderr, "Diff y vals %-12.7f   %-12.7f  \n", by, data[4]);
+               mu_assert("The Y components had different values", false);
+
             }
             if (fabs(bz - data[5]) > resolution) {
+                fprintf(stderr, "Diff z vals %-12.7f   %-12.7f  \n", bz, data[5]);
                 mu_assert("The Z components had different values", false);
             }
 
         }
+
+        setAlgorithm(INTERPOLATION);
+        fprintf(stdout, "\nPASSED Solenoid nearest neighbor UnitTest\n");
+        return NULL;
     }
 
-    fprintf(stdout, "\nPASSED nearest neighbor UnitTest\n");
-    return NULL;
+
 }
 
 

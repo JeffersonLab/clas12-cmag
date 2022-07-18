@@ -16,8 +16,9 @@ typedef struct colormap {
     char *colors[73]; //n colors of map
 } ColorMap;
 
-//external ptototypes
+//external prototypes
 extern char *getColor(ColorMapPtr, double);
 
+extern ColorMapPtr getColorMap(double);
 extern ColorMapPtr defaultColorMap();
 #endif //CMAG_MAPCOLOR_H
