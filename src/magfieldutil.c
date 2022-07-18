@@ -14,6 +14,11 @@
 #include <string.h>
 #include <time.h>
 
+#define _USE_MATH_DEFINES
+#ifndef M_PI
+	#define M_PI 3.14159265358979323846
+#endif
+
 //used for comparing real numbers
 double const TINY = 1.0e-8;
 
