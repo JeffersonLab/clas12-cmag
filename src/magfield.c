@@ -17,6 +17,7 @@
 MagneticFieldPtr testFieldPtr;
 
 //the field algorithm (global; applies to all fields)
+
 Algorithm _algorithm = INTERPOLATION;
 
 //for sector rotations

@@ -107,7 +107,6 @@ static void printFV(FieldValuePtr fieldValuePtr, double x, double y, double z, M
     else {
         getFieldValue(fieldValuePtr, x, y, z, field);
     }
-
     printf("(%7.2f, %7.2f, %7.2f) cm  ", x, y, z);
    // printFieldValue(fieldValuePtr, stdout);
     printFieldValueFull(fieldValuePtr, "kG", stdout);

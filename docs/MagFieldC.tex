@@ -205,6 +205,63 @@ Since that is often the case. \footnote{We agonized over whether to make the def
 \subsection{Obtaining Field Values}
 Here we are: the meat and potatoes section. Everything has built with nary a glitch, all the unit tests have passed,  and the field map files are downloaded, and the library \texttt{libCMag.a} is linked in. \footnote{Again, we will not comment on the link process, which for complex codes (not \texttt{cMag} which is embarrassingly simple, but for whatever is attempting to link \texttt{libCMag.a}, --which is likely to be complex beyond our ability to comprehend) generally leads to much weeping and gnashing of teeth. But just one note: \texttt{libCMag.a} does depend on the ubiquitous \textit{C} math library, \texttt{libm.a}. No doubt your code already links that with a dash of \texttt{-lm}, but for full disclosure we are putting the dependency down on paper.\\}
 
+There are two methods for obtaining the field values once have successfully read the maps. They are:
+\begin{verbatim}
+/**
+ * Obtain the value of the field by tri-linear interpolation or nearest neighbor,
+ * depending on settings.
+ * @param fieldValuePtr should be a valid pointer to a FieldValue. Upon
+ * return it will hold the value of the field in kG, in Cartesian components
+ * Bx, By, BZ, regardless of the field coordinate system of the map.
+ * @param x the x coordinate in cm.
+ * @param y the y coordinate in cm.
+ * @param z the z coordinate in cm.
+ * @param fieldPtr a pointer to the field map.
+ */
+void getFieldValue(FieldValuePtr fieldValuePtr,
+                   double x,
+                   double y,
+                   double z,
+                   MagneticFieldPtr fieldPtr)
+
+/**
+ * Obtain the combined value of two fields. The field
+ * is obtained by tri-linear interpolation or nearest neighbor, depending on settings.
+ * @param fieldValuePtr should be a valid pointer to a FieldValue. Upon
+ * return it will hold the value of the field, in kG, in Cartesian components
+ * Bx, By, BZ, regardless of the field coordinate system of the maps,
+ * obtained from all the field maps that it is given in the variable length
+ * argument list. For example, if torus and solenoid point to fields,
+ * then one can obtain the combined field at (x, y, z) by calling
+ * getCompositeFieldValue(fieldVal, x, y, z, torus, solenoid).
+ * @param x the x coordinate in cm.
+ * @param y the y coordinate in cm.
+ * @param z the z coordinate in cm.
+ * @param field1 the first field.
+ * @param field2 the second field.
+ */
+void getCompositeFieldValue(FieldValuePtr fieldValuePtr,
+                            double x,
+                            double y,
+                            double z,
+                            MagneticFieldPtr field1,
+                            MagneticFieldPtr field2) 
+
+\end{verbatim}
+The first method is for obtaining the value of a single map, the second for combining the values of two maps. In all cases the length units are cm and the field values are kG. The result is placed in the \texttt{FieldValuePtr} structure pointed to by \texttt{fieldValuePtr}. That structure has three float values, texttt{b1}, texttt{b2}, and texttt{b3} corresponding to texttt{$B_x$}, texttt{$B_y$}, and texttt{$B_z$}. \footnote{There is a reason why we didn't name them texttt{bx}, texttt{by}, and texttt{bz}. It's because sometimes in the innards of the code they correspond to cylindrical components.}
+
+So before calling these functions you probably want to do something like:
+\begin{verbatim}
+FieldValuePtr fieldValuePtr = (FieldValuePtr) malloc (sizeof(FieldValue));
+\end{verbatim}
+and after the call you access the components by:
+\begin{verbatim}
+float bx = fieldValuePtr->b1;
+float by = fieldValuePtr->b2;
+float bz = fieldValuePtr->b3;
+\end{verbatim}
+
+
 \subsection {Miscellany}
 \subsubsection{Seeing is Believing}
 I don't know about you, but I don't believe anything works unless I see it. So \texttt{cMag} comes with the ability to make some SVG images of the field. \footnote{It was an easy choice to go SVG rather than jpeg or png or some other format.  SVG files are xml, so producing them is simply writing text files, rather than adding jpeg or png libraries that will result in you build procedure being a house O' cards. In addition, someone else already wrote exactly the minimal SVG code thet we need, in \textit{C} available at \url{https://github.com/CodeDrome/svg-library-c}. Game, set, match, point.  Okay, it's not all good news, the svg files are fairly big, but I don't care.} Seeing that the images look reasonable is the best unit test. Although given the plots only show magnitude and not components, the components could be mixed up from a bad rotation or have the wrong signs. I truly hate when that happens. 

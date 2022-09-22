@@ -81,7 +81,6 @@ void printGrid(GridPtr gridPtr, FILE * stream) {
  * should be bounded by values[index] and values[index+1].
  */
 int getIndex(const GridPtr gridPtr, const double val) {
-
     int index;
 
     if (gridPtr->numPoints < 2) { //solenoid phi (q1) grid
