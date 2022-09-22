@@ -13,8 +13,6 @@
 
 typedef struct grid *GridPtr;
 
-extern enum Algorithm {INTERPOLATION, NEAREST_NEIGHBOR} fieldAlgorithm;
-
 /**
  * Holds the uniformly spaced grid values for a coordinate.
  */
@@ -22,7 +20,7 @@ typedef struct grid {
         char *name;    //the name of the coordinate, e.g., "phi".
         double minVal;  //the min value of the coordinate
         double maxVal;  //the max value of the coordinate
-        unsigned int num; //the number of vals including the ends
+        unsigned int numPoints; //the number of vals including the ends
         double delta; // (max-min)/(n-1)
         double *values; //values of the coordinates
 } Grid;
@@ -30,6 +28,7 @@ typedef struct grid {
 //external prototypes
 extern GridPtr createGrid(const char*, double, double, unsigned int);
 extern char *gridStr(GridPtr);
+extern void printGrid(GridPtr, FILE *);
 extern double valueAtIndex(GridPtr, int);
 extern char *gridUnitTest(void);
 extern int getIndex(const GridPtr, const double);

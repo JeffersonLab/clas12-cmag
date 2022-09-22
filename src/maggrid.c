@@ -30,7 +30,7 @@ GridPtr createGrid(const char *name, const double minVal, const double maxVal,
     stringCopy(&(gridPtr->name), name);
     gridPtr->minVal = minVal;
     gridPtr->maxVal = maxVal;
-    gridPtr->num = num;
+    gridPtr->numPoints = num;
 
     if (num < 2) { //happens for solenoid q1 only
         gridPtr->delta = INFINITY;
@@ -60,8 +60,17 @@ char *gridStr(GridPtr gridPtr) {
     char *str = (char*) malloc(128);
 
     sprintf(str, "%3s min: %6.1f  max: %6.1f  Np: %4d  delta: %6.1f",
-            gridPtr->name, gridPtr->minVal, gridPtr->maxVal, gridPtr->num, gridPtr->delta);
+            gridPtr->name, gridPtr->minVal, gridPtr->maxVal, gridPtr->numPoints, gridPtr->delta);
     return str;
+}
+
+/**
+ * Print the grid values
+ * @param gridPtr the pointer to the coordinate grid.
+ * @param stream the stream to print to, e.g., stdout
+ */
+void printGrid(GridPtr gridPtr, FILE * stream) {
+    fprintf(stream, "\nValues for grid [%s]\n", gridPtr->name);
 }
 
 /**
@@ -75,17 +84,22 @@ int getIndex(const GridPtr gridPtr, const double val) {
 
     int index;
 
-    if (gridPtr->num < 2) { //solenoid phi (q1) grid
+    if (gridPtr->numPoints < 2) { //solenoid phi (q1) grid
         return 0;
     }
 
     if ((val < gridPtr->minVal) || (val > gridPtr->maxVal)) {
         index = -1;
     }
-    else {
-        double fract = (val - gridPtr->minVal) / gridPtr->delta;
-        index = (int) (fract);
+
+    double fract = (val - gridPtr->minVal) / gridPtr->delta;
+    index = (int) (fract);
+
+    //guard against weird possibility of landing right on the max grid value
+    if (index > (gridPtr->numPoints - 2)) {
+        index = gridPtr->numPoints - 2;
     }
+
     return index;
 }
 
@@ -97,7 +111,7 @@ int getIndex(const GridPtr gridPtr, const double val) {
  * the index is out of range
  */
 double valueAtIndex(GridPtr gridPtr, int index) {
-    if ((index < 0) || (index >= gridPtr->num)) {
+    if ((index < 0) || (index >= gridPtr->numPoints)) {
         return NAN;
     }
 
@@ -130,7 +144,7 @@ char *gridUnitTest() {
         int index = getIndex(gridPtr, val);
 
         //result should be true if we pass
-        bool result = (index >= 0) && (index <= (gridPtr->num - 2));
+        bool result = (index >= 0) && (index <= (gridPtr->numPoints - 2));
 
         if (!result) {
             fprintf(stdout, "BAD INDEX: Val = %f Index = %d \n", val, index);
