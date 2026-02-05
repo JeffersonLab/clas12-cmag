@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <math.h>
+#include <arpa/inet.h>
 
 //do we have to swap bytes?
 //since the fields were produced by Java which uses
