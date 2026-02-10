@@ -56,10 +56,11 @@ install_headers(
   'includes/testdata.h',
 )
 
+# Exported dependency object (parent can use dependency('clas12-cmag'))
 clas12_cmag_dep = declare_dependency(
   include_directories: inc,
   link_with: lib_cmag,
   dependencies: m_dep,
 )
-meson.override_dependency('clas12-cmag', clas12_cmag_dep)
 
+meson.override_dependency('clas12-cmag', clas12_cmag_dep)
